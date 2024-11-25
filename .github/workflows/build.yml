@@ -21,11 +21,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller
+
       - name: Build Executable with PyInstaller
         run: |
           pyinstaller --onefile --noconsole --icon=assets/Logo.ico --name=EZPeakFinder main.py
 
-      - name: Upload Executable as an artifact
+      - name: Upload Executable
         uses: actions/upload-artifact@v3
         with:
           name: EZPeakFinder
