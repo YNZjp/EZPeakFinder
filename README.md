@@ -4,7 +4,7 @@
 
 EZPeakFinderは、Twitchのライブ配信における「盛り上がり」を視覚化するツールです。配信チャットのコメント数やその多様性、バースト性（急激な増加）をもとに、視聴者が最も反応している瞬間を特定し、グラフで可視化します。
 
-![EZPeakFinder Screenshot](./assets/SS.png)
+![EZPeakFinder Screenshot](./assets/SS.PNG)
 
 ## こんな使い方が出来ます
 
