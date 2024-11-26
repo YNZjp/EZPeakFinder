@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from matplotlib import rcParams
 from matplotlib import font_manager as fm
 from matplotlib.collections import PathCollection
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
 import webbrowser
@@ -419,7 +420,9 @@ class EZPeakFinder(QtWidgets.QWidget):
                                          color='red',
                                          label=None,
                                          s=50,
-                                         picker=10)
+                                         picker=7)
+        else:
+            self.line_peaks = None
 
         ax.set_xlabel('時間 (hh:mm:ss)')
         ax.set_ylabel('スコア')
@@ -446,8 +449,39 @@ class EZPeakFinder(QtWidgets.QWidget):
         if len(indices) == 0:
             return
 
-        index = indices[0]
-        clicked_time = scatter.get_offsets()[index][0]
+        selected_indices = []
+
+        if scatter == self.line_peaks:
+            selected_indices = [indices[0]]
+        elif scatter == self.line_normal and hasattr(
+                self, 'line_peaks') and self.line_peaks is not None:
+            peak_offsets = self.line_peaks.get_offsets() if hasattr(
+                self.line_peaks, 'get_offsets') else []
+            normal_offsets = scatter.get_offsets()
+
+            for idx in indices:
+                normal_point = normal_offsets[idx]
+                is_peak = any(
+                    np.allclose(normal_point, peak_point, atol=1e-5)
+                    for peak_point in peak_offsets)
+                if is_peak:
+                    corresponding_peak_idx = next(
+                        peak_idx
+                        for peak_idx, peak_point in enumerate(peak_offsets)
+                        if np.allclose(normal_point, peak_point, atol=1e-5))
+                    selected_indices = [corresponding_peak_idx]
+                    scatter = self.line_peaks
+                    break
+                else:
+                    selected_indices.append(idx)
+
+        else:
+            selected_indices = [indices[0]]
+
+        if len(selected_indices) == 0:
+            return
+
+        clicked_time = scatter.get_offsets()[selected_indices[0]][0]
 
         current_time = time.time()
         cooldown_period = 2
@@ -472,6 +506,25 @@ class EZPeakFinder(QtWidgets.QWidget):
         if video_id:
             full_url = f"https://www.twitch.tv/videos/{video_id}{time_param}"
             webbrowser.open(full_url)
+
+        self.last_clicked_index = selected_indices[0]
+
+        sizes_normal = [30] * len(self.line_normal.get_offsets())
+        sizes_peaks = [50] * len(self.line_peaks.get_offsets()) if hasattr(
+            self, 'line_peaks') and self.line_peaks is not None else []
+
+        if scatter == self.line_normal:
+            if selected_indices[0] < len(sizes_normal):
+                sizes_normal[selected_indices[0]] = 300
+        elif scatter == self.line_peaks:
+            if selected_indices[0] < len(sizes_peaks):
+                sizes_peaks[selected_indices[0]] = 300
+
+        self.line_normal.set_sizes(sizes_normal)
+        if hasattr(self, 'line_peaks') and self.line_peaks is not None:
+            self.line_peaks.set_sizes(sizes_peaks)
+
+        self.graph_canvas.draw()
 
     def update_button_state(self, enabled, text=None, color=None):
         self.analyze_button.setEnabled(enabled)
